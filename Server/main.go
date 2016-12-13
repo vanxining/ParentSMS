@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
     "log"
 	"net/http"
@@ -16,6 +17,8 @@ type SMS struct {
 }
 
 var pool map[string][]SMS
+var viewPageHeader []byte
+var messageTmpl *template.Template
 
 func loadData() error {
     pool = make(map[string][]SMS)
@@ -38,6 +41,23 @@ func loadData() error {
             return err
         }
         pool[receiver] = collection
+    }
+
+    var err error
+    viewPageHeader, err = ioutil.ReadFile("./tmpl/view.html")
+    if err != nil {
+        return err
+    }
+
+    tmpl := `
+<div>
+    <p><span class="sender">{{.Sender}}</span>
+    <span class="date">{{.Date}}</span></p>
+    <p class="content">{{.Content}}</p>
+</div>`
+    messageTmpl, err = template.New("message").Parse(tmpl)
+    if err != nil {
+        return err
     }
 
     return nil
@@ -73,9 +93,13 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    for i := 0; i < len(collection); i++ {
-        fmt.Fprintf(w, "<p>%s</p>\n", collection[i].Content)
+    w.Write(viewPageHeader)
+
+    for i := len(collection) - 1; i >= 0; i-- {
+        messageTmpl.Execute(w, collection[i])
     }
+
+    fmt.Fprint(w, "</body></html>")
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
