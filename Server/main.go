@@ -21,7 +21,7 @@ func sub(x, y int) int {
 	return x - y
 }
 
-var templates = template.
+var viewTmpl = template.
 	Must(template.New("view.html").
 		Funcs(template.FuncMap{"sub": sub}).
 		ParseFiles("./tmpl/view.html"))
@@ -81,7 +81,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := templates.ExecuteTemplate(w, "view.html", pool[receiver])
+	err := viewTmpl.Execute(w, pool[receiver])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
