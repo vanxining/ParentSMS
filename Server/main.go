@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -6,68 +5,58 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-    "log"
+	"log"
 	"net/http"
 )
 
 type SMS struct {
-	Sender string
+	Sender  string
 	Content string
-	Date string
+	Date    string
 }
 
 var pool map[string][]SMS
-var viewPageHeader []byte
-var messageTmpl *template.Template
+
+func sub(x, y int) int {
+	return x - y
+}
+
+var templates = template.
+	Must(template.New("view.html").
+		Funcs(template.FuncMap{"sub": sub}).
+		ParseFiles("./tmpl/view.html"))
 
 func loadData() error {
-    pool = make(map[string][]SMS)
+	pool = make(map[string][]SMS)
 
-    files, _ := ioutil.ReadDir("./data")
-    for _, f := range files {
-        receiver := f.Name()
-        if len(receiver) != 11 || receiver[0] != '1' {
-            continue
-        }
+	files, _ := ioutil.ReadDir("./data")
+	for _, f := range files {
+		receiver := f.Name()
+		if len(receiver) != 11 || receiver[0] != '1' {
+			continue
+		}
 
-        raw, err := ioutil.ReadFile("./data/" + receiver)
-        if err != nil {
-            return err
-        }
+		raw, err := ioutil.ReadFile("./data/" + receiver)
+		if err != nil {
+			return err
+		}
 
-        var collection []SMS
-        err = json.Unmarshal(raw, &collection)
-        if err != nil {
-            return err
-        }
-        pool[receiver] = collection
-    }
+		var collection []SMS
+		err = json.Unmarshal(raw, &collection)
+		if err != nil {
+			return err
+		}
+		pool[receiver] = collection
+	}
 
-    var err error
-    viewPageHeader, err = ioutil.ReadFile("./tmpl/view.html")
-    if err != nil {
-        return err
-    }
-
-    tmpl := `
-<div>
-    <p><span class="sender">{{.Sender}}</span>
-    <span class="date">{{.Date}}</span></p>
-    <p class="content">{{.Content}}</p>
-</div>`
-    messageTmpl, err = template.New("message").Parse(tmpl)
-    if err != nil {
-        return err
-    }
-
-    return nil
+	return nil
 }
 
 func saveCollection(receiver string) error {
-    raw, err := json.Marshal(pool[receiver])
-    if err != nil {
-        return err
-    }
+	raw, err := json.Marshal(pool[receiver])
+	if err != nil {
+		return err
+	}
 
 	fileName := "./data/" + receiver
 	return ioutil.WriteFile(fileName, raw, 0600)
@@ -75,62 +64,58 @@ func saveCollection(receiver string) error {
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
 	receiver := r.URL.Path[len("/view/"):]
-    if len(receiver) == 0 {
-        if len(pool) > 0 {
-            for rcv, _ := range pool {
-                fmt.Fprintf(w, "<p><a href='/view/%s'>%s</a></p>\n", rcv, rcv)
-            }
-        } else {
-            fmt.Fprintf(w, "No SMS received yet.")
-        }
+	if len(receiver) == 0 {
+		if len(pool) > 0 {
+			for rcv, _ := range pool {
+				fmt.Fprintf(w, "<p><a href='/view/%s'>%s</a></p>\n", rcv, rcv)
+			}
+		} else {
+			fmt.Fprintf(w, "No SMS received yet.")
+		}
 
-        return
-    }
+		return
+	}
 
-    collection, existed := pool[receiver]
-    if !existed {
-        fmt.Fprintf(w, "No SMS received yet for %s.", receiver)
-        return
-    }
+	if _, existed := pool[receiver]; !existed {
+		fmt.Fprintf(w, "No SMS received yet for %s.", receiver)
+		return
+	}
 
-    w.Write(viewPageHeader)
-
-    for i := len(collection) - 1; i >= 0; i-- {
-        messageTmpl.Execute(w, collection[i])
-    }
-
-    fmt.Fprint(w, "</body></html>")
+	err := templates.ExecuteTemplate(w, "view.html", pool[receiver])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
 	receiver := r.URL.Path[len("/post/"):]
-    if len(receiver) == 0 {
-        log.Printf("No receiver provided.")
-        return
-    }
-
-    decoder := json.NewDecoder(r.Body)
-	var sms SMS
-    err := decoder.Decode(&sms)
-    if err != nil {
-        log.Printf("Illege JSON data: %v", err)
+	if len(receiver) == 0 {
+		log.Printf("No receiver provided.")
 		return
-    }
-    defer r.Body.Close()
+	}
 
-    pool[receiver] = append(pool[receiver], sms)
-    saveCollection(receiver)
+	decoder := json.NewDecoder(r.Body)
+	var sms SMS
+	err := decoder.Decode(&sms)
+	if err != nil {
+		log.Printf("Illege JSON data: %v", err)
+		return
+	}
+	defer r.Body.Close()
 
-    feedback := fmt.Sprintf("New SMS received from %s to %s\n", sms.Sender, receiver)
-    log.Print(feedback)
-    fmt.Fprint(w, feedback)
+	pool[receiver] = append(pool[receiver], sms)
+	saveCollection(receiver)
+
+	feedback := fmt.Sprintf("New SMS received from %s to %s\n", sms.Sender, receiver)
+	log.Print(feedback)
+	fmt.Fprint(w, feedback)
 }
 
 func main() {
-    if err := loadData(); err != nil {
-        log.Fatalf("Cannot load saved data: %v", err)
-        return
-    }
+	if err := loadData(); err != nil {
+		log.Fatalf("Cannot load saved data: %v", err)
+		return
+	}
 
 	port := 1992
 	http.HandleFunc("/view/", viewHandler)
@@ -139,4 +124,3 @@ func main() {
 	fmt.Printf("Serving on port %d...\n", port)
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
-

@@ -37,3 +37,18 @@ div {
 </style>
 </head>
 <body>
+
+{{$collection := .}}
+{{$last := sub (len $collection) 1}}
+{{range $idx, $sms := $collection}}
+{{with $sms2 := index $collection (sub $last $idx)}}
+<div>
+    <p><span class="sender">{{.Sender}}</span>
+    <span class="date">{{.Date}}</span></p>
+    <p class="content">{{.Content}}</p>
+</div>
+{{end}}
+{{end}}
+
+</body>
+</html>
