@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+<title>客户端列表</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+</style>
+</head>
+<body>
+
+{{define "EMPTY"}}<span>客户端列表为空。</span>{{end}}
+{{define "NOT_EMPTY"}}
+<ul>
+{{range $receiver, $collection := .}}
+<li><a href="/view/{{$receiver}}">{{$receiver}}</a></li>
+{{end}}
+</ul>
+{{end}}
+
+{{if eq (len .) 0}} {{template "EMPTY" .}}
+{{else}} {{template "NOT_EMPTY" .}} {{end}}
+
+</body>
+</html>

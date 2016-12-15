@@ -68,12 +68,7 @@ func saveCollection(receiver string) error {
 func viewHandler(w http.ResponseWriter, r *http.Request) {
 	receiver := r.URL.Path[len("/view/"):]
 	if len(receiver) == 0 {
-		if len(pool) > 0 {
-			numbersTmpl.Execute(w, pool)
-		} else {
-			fmt.Fprintf(w, "No SMS received yet.")
-		}
-
+		numbersTmpl.Execute(w, pool)
 		return
 	}
 
@@ -82,7 +77,12 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := viewTmpl.Execute(w, pool[receiver])
+	page := struct {
+		Title      string
+		Collection []SMS
+	}{receiver, pool[receiver]}
+
+	err := viewTmpl.Execute(w, page)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
