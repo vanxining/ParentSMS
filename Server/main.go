@@ -31,10 +31,11 @@ func loadData() error {
 
 	files, _ := ioutil.ReadDir("./data")
 	for _, f := range files {
-		receiver := f.Name()
-		if len(receiver) != 11 || receiver[0] != '1' {
+		if f.Name()[0] == '.' {
 			continue
 		}
+
+		receiver := f.Name()
 
 		raw, err := ioutil.ReadFile("./data/" + receiver)
 		if err != nil {
