@@ -21,10 +21,12 @@ func sub(x, y int) int {
 	return x - y
 }
 
-var viewTmpl = template.
-	Must(template.New("view.html").
-		Funcs(template.FuncMap{"sub": sub}).
-		ParseFiles("./tmpl/view.html"))
+var numbersTmpl = template.Must(template.New("view_number_list.html").
+	ParseFiles("./tmpl/view_number_list.html"))
+
+var viewTmpl = template.Must(template.New("view.html").
+	Funcs(template.FuncMap{"sub": sub}).
+	ParseFiles("./tmpl/view.html"))
 
 func loadData() error {
 	pool = make(map[string][]SMS)
@@ -67,9 +69,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	receiver := r.URL.Path[len("/view/"):]
 	if len(receiver) == 0 {
 		if len(pool) > 0 {
-			for rcv, _ := range pool {
-				fmt.Fprintf(w, "<p><a href='/view/%s'>%s</a></p>\n", rcv, rcv)
-			}
+			numbersTmpl.Execute(w, pool)
 		} else {
 			fmt.Fprintf(w, "No SMS received yet.")
 		}
