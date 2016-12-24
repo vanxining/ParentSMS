@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SMS</string>
+    <string name="remote_help">远程协助</string>
 </resources>
