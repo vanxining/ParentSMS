@@ -1,15 +1,13 @@
 package edu.pku.sms;
 
-import android.content.Context;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
 class PhoneID {
-    private static String phoneID;
+    private static String phoneID = "0000";
 
     static String getPhoneID(TelephonyManager tm) {
         if (tm == null) {
-            assert phoneID != null;
             return phoneID;
         }
 
@@ -24,11 +22,13 @@ class PhoneID {
         Log.i("PhoneID", "IMEI: " + imei);
         Log.i("PhoneID", "Phone number: " + number);
 
-        if (number.isEmpty()) {
+        if (number == null || number.isEmpty()) {
+            if (imei == null || imei.isEmpty()) {
+                return phoneID;
+            }
+
             return imei;
         }
-
-        assert !number.isEmpty();
 
         if (number.startsWith("+86")) {
             return number.substring(3);
