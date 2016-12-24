@@ -10,12 +10,14 @@ import (
 )
 
 type SMS struct {
+	ID      int
 	Sender  string
 	Content string
 	Date    string
 }
 
 var pool map[string][]SMS
+var ids map[int]bool
 
 func sub(x, y int) int {
 	return x - y
@@ -30,6 +32,7 @@ var viewTmpl = template.Must(template.New("view.html").
 
 func loadData() error {
 	pool = make(map[string][]SMS)
+	ids = make(map[int]bool)
 
 	files, _ := ioutil.ReadDir("./data")
 	for _, f := range files {
@@ -50,6 +53,10 @@ func loadData() error {
 			return err
 		}
 		pool[receiver] = collection
+
+		for i := 0; i < len(collection); i++ {
+			ids[collection[i].ID] = true
+		}
 	}
 
 	return nil
@@ -104,12 +111,22 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	pool[receiver] = append(pool[receiver], sms)
-	saveCollection(receiver)
+	feedback := fmt.Sprintf("SMS received from %s to %s\n", sms.Sender, receiver)
 
-	feedback := fmt.Sprintf("New SMS received from %s to %s\n", sms.Sender, receiver)
+	if _, existed := ids[sms.ID]; !existed {
+		pool[receiver] = append(pool[receiver], sms)
+		saveCollection(receiver)
+
+		ids[sms.ID] = true
+
+		feedback = "New " + feedback
+	} else {
+		feedback = "Duplicated " + feedback
+	}
+
+	fmt.Fprintf(w, "%d\n%s", sms.ID, feedback)
+
 	log.Print(feedback)
-	fmt.Fprint(w, feedback)
 }
 
 func main() {
