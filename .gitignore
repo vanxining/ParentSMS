@@ -60,3 +60,5 @@ Thumbs.db
 *.exe
 *.swp
 data/
+
+Server/Server
