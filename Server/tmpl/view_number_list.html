@@ -10,17 +10,13 @@
 </head>
 <body>
 
-{{define "EMPTY"}}<span>客户端列表为空。</span>{{end}}
-{{define "NOT_EMPTY"}}
 <ul>
-{{range $receiver, $collection := .}}
+{{range $receiver, $_ := .}}
 <li><a href="/view/{{$receiver}}">{{$receiver}}</a></li>
-{{end}}
+{{else}}
+<span>客户端列表为空。</span>
 </ul>
 {{end}}
-
-{{if eq (len .) 0}} {{template "EMPTY" .}}
-{{else}} {{template "NOT_EMPTY" .}} {{end}}
 
 </body>
 </html>
